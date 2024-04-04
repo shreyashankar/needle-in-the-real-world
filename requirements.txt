@@ -1,0 +1,13 @@
+openai
+rich
+python-dotenv
+loguru
+requests
+langchain_openai
+langchain_community
+pydantic
+nltk
+bert-score
+langchain-anthropic
+streamlit
+langchain-google-genai
