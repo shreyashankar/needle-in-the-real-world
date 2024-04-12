@@ -34,7 +34,7 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 class SyntheticMedicalExample(BaseModel):
     id: str
-    summary: str
+    summary: Optional[str] = None
     transcript: str
     needles: Optional[List[str]] = None
     idx: Optional[int] = None
@@ -196,18 +196,21 @@ combined_chain = RunnableParallel(**{cn: globals()[cn] for cn in CHAIN_NAMES})
 
 if __name__ == "__main__":
 
-    # old_df = pd.read_csv("responses/synthetic_results.csv")
-    raw_dataset = json.loads(open("data/medical.json").read())
+    old_df = pd.read_csv("synthetic_responses/synthetic_results.csv")
+    raw_dataset = json.loads(open("data/synthetic.json").read())
     batch_size = 1
 
-    # old_df = old_df.dropna(axis=1, how="all")
-    # old_df["needles"] = old_df["needles"].apply(lambda x: eval(x))
+    old_df = old_df.dropna(axis=1, how="all")
+    # Replace nans with empty string
+    old_df = old_df.fillna("")
 
-    # final_results = [
-    #     SyntheticMedicalExample(**record) for record in old_df.to_dict(orient="records")
-    # ]
+    old_df["needles"] = old_df["needles"].apply(lambda x: eval(x))
 
-    final_results = []
+    final_results = [
+        SyntheticMedicalExample(**record) for record in old_df.to_dict(orient="records")
+    ]
+
+    # final_results = []
 
     dataset = [SyntheticMedicalExample(**record) for record in raw_dataset]
 
@@ -275,4 +278,4 @@ if __name__ == "__main__":
 
         # Write to pandas dataframe
         df = pd.DataFrame([example.dict() for example in final_results])
-        df.to_csv("responses/synthetic_results.csv", index=False)
+        df.to_csv("synthetic_responses/synthetic_results.csv", index=False)

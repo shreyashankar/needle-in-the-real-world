@@ -27,7 +27,7 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 class MedicalExample(BaseModel):
     question: str
     id: str
-    summary: str
+    summary: Optional[str] = None
     transcript: str
     openai_result: Optional[str] = None  # Rename this to gpt3.5_result
     anthropic_result: Optional[str] = None  # rename this to sonnet_result
@@ -154,14 +154,14 @@ dbrx_chain = dbrx_chain.with_fallbacks([noop_chain])
 
 
 combined_chain = RunnableParallel(
-    # openai_chain=openai_chain,
-    # anthropic_chain=anthropic_chain,
-    # gemma_chain=gemma_chain,
-    # mistral_chain=mistral_chain,
-    # gpt4_turbo_chain=gpt4_turbo_chain,
-    # claude_opus_chain=claude_opus_chain,
-    # claude_haiku_chain=claude_haiku_chain,
-    # gemini_chain=gemini_chain,
+    openai_chain=openai_chain,
+    anthropic_chain=anthropic_chain,
+    gemma_chain=gemma_chain,
+    mistral_chain=mistral_chain,
+    gpt4_turbo_chain=gpt4_turbo_chain,
+    claude_opus_chain=claude_opus_chain,
+    claude_haiku_chain=claude_haiku_chain,
+    gemini_chain=gemini_chain,
     dbrx_chain=dbrx_chain,
 )
 
@@ -170,8 +170,8 @@ combined_chain = RunnableParallel(
 
 if __name__ == "__main__":
     # Load data
-    raw_dataset = json.loads(open("data/medical.json").read())
-    # old_df = pd.read_csv("responses/medical_results.csv")
+    raw_dataset = json.loads(open("data/synthetic.json").read())
+    old_df = pd.read_csv("synthetic_responses/medical_results.csv")
     batch_size = 1
     questions = [
         "What is the first name of the patient?",
@@ -194,13 +194,16 @@ if __name__ == "__main__":
     ]
 
     # Get rid of columns with NaN values (but keep the rows)
-    # old_df = old_df.dropna(axis=1, how="all")
+    old_df = old_df.dropna(axis=1, how="all")
 
-    # final_results = [
-    #     MedicalExample(**record) for record in old_df.to_dict(orient="records")
-    # ]
+    # Fill na with empty string
+    old_df = old_df.fillna("")
 
-    final_results = []
+    final_results = [
+        MedicalExample(**record) for record in old_df.to_dict(orient="records")
+    ]
+
+    # final_results = []
 
     for question in questions:
         dataset = [
@@ -233,10 +236,14 @@ if __name__ == "__main__":
             )
 
             for result, example in zip(results, batch):
-                # haiku_result = result["claude_haiku_chain"]
-                # gemini_result = result["gemini_chain"]
-                # example.haiku_result = haiku_result
-                # example.gemini_result = gemini_result
+                example.openai_result = result["openai_chain"]
+                example.anthropic_result = result["anthropic_chain"]
+                example.mistral_result = result["mistral_chain"]
+                example.gemma_result = result["gemma_chain"]
+                example.gpt4_result = result["gpt4_turbo_chain"]
+                example.opus_result = result["claude_opus_chain"]
+                example.haiku_result = result["claude_haiku_chain"]
+                example.gemini_result = result["gemini_chain"]
                 example.dbrx_result = result["dbrx_chain"]
                 # logger.info(example)
                 logger.info(result)
@@ -245,4 +252,4 @@ if __name__ == "__main__":
 
             # Write to pandas dataframe
             df = pd.DataFrame([example.dict() for example in final_results])
-            df.to_csv("responses/medical_results.csv", index=False)
+            df.to_csv("synthetic_responses/medical_results.csv", index=False)
